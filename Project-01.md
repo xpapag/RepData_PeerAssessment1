@@ -6,6 +6,15 @@ Processing and interpreting the personal activity monitoring Data
 Loading and preprocessing the data; Read the data in the csv and do the right transformations
 
 ```r
+Sys.setlocale(category = "LC_ALL", locale = "C")
+```
+
+```
+## [1] "C"
+```
+
+```r
+setwd("C:/Work/bibliography/courses/2014/Data Specialization/Reproducible Research/Project-1")
 ActivityData <- read.table("./activity.csv", sep = ",", header = TRUE, na.strings = NA)
 ActivityData$date <- as.Date(ActivityData$date)
 head(ActivityData, n = 10)
@@ -75,6 +84,11 @@ df2 <- ddply(ActivityData, .(interval), summarize, avgSteps = mean(steps, na.rm 
 maxAvgSteps <- max(df2$avgSteps, na.rm = TRUE)
 tmp <- df2[df2$avgSteps == maxAvgSteps, ]
 maxInterval <- tmp$interval
+maxInterval
+```
+
+```
+## [1] 835
 ```
 
 The **835** 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps.
@@ -117,12 +131,12 @@ abline(v = median(df3$avgSteps, na.rm = TRUE), col = "magenta", lwd = 4)
 The mean value of the total number of steps taken per day is **1.0766 &times; 10<sup>4</sup>** and the median value of the total number of steps taken per day is **1.0766 &times; 10<sup>4</sup>**.
 
 ## Are there differences in activity patterns between weekdays and weekends?
-Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+Create a new factor variable in the dataset with two levels **weekday** and **weekend** indicating whether a given date is a weekday or weekend day.
 
 
 ```r
 for (row in 1:length(newActivityData$date)) {
-    if (weekdays(as.Date(newActivityData$date[row])) %in% c("Σάββατο", "Κυριακή")) {
+    if (weekdays(as.Date(newActivityData$date[row])) %in% c("Saturday", "Sunday")) {
         newActivityData$typeOfDay[row] = "Weekend"
     } else {
         newActivityData$typeOfDay[row] = "Weekday"
@@ -136,10 +150,9 @@ Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minut
 
 ```r
 library(ggplot2)
-df3 <- ddply(newActivityData, .(interval), summarize, avgSteps = mean(steps, 
+df4 <- ddply(newActivityData, .(interval, typeOfDay), summarize, avgSteps = sum(steps, 
     na.rm = TRUE))
-df4 <- cbind(df3, newActivityData$typeOfDay)
-colnames(df4) = c("interval", "avgSteps", "typeOfDay")
+colnames(df4) = c("interval", "typeOfDay", "avgSteps")
 g <- ggplot(df4, aes(x = interval, y = avgSteps))
 g + geom_line() + facet_grid(typeOfDay ~ .) + theme(panel.background = element_rect(colour = "pink")) + 
     labs(x = "Interval") + labs(y = "Average Steps per interval") + labs(title = "Time series plot of the 5-minute interval and the avg num of steps")

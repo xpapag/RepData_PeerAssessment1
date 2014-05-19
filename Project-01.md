@@ -87,23 +87,63 @@ totalNumOfNAs <- sum(is.na(ActivityData$steps))
 
 There are **2304** missing values in the dataset (i.e. the total number of rows with NAs).
 
-### Filling in all of the missing values in the dataset with 0
-What is mean total number of steps taken per day with the missing values filled in with zeros?
+### Filling in all of the missing values in the dataset with the avg of steps in the same interval
+
 
 ```r
 library(plyr)
+df3 <- ddply(ActivityData, .(interval), summarize, avgSteps = mean(steps, na.rm = TRUE))
 newActivityData <- ActivityData
-newActivityData[is.na(newActivityData)] <- 0
-df3 <- ddply(newActivityData, .(date), summarize, sumSteps = sum(steps))
-hist(df3$sumSteps, col = "green", breaks = 10, xlab = "Number of steps per day", 
+for (row in 1:length(newActivityData$steps)) {
+    if (is.na(newActivityData$steps[row])) {
+        ndate <- newActivityData$interval[row]
+        tmp <- df3[df3$interval == ndate, ]
+        result <- tmp$avgSteps
+        newActivityData$steps[row] = result
+    }
+}
+df3 <- ddply(newActivityData, .(date), summarize, avgSteps = sum(steps, na.rm = TRUE))
+hist(df3$avgSteps, col = "green", breaks = 10, xlab = "Number of steps per day", 
     main = "Histogram of the total number of steps taken each day")
-nstepsMean <- mean(df3$sumSteps, na.rm = TRUE)
-nstepsMedian <- median(df3$sumSteps, na.rm = TRUE)
-abline(v = mean(df3$sumSteps, na.rm = TRUE), col = "red", lwd = 4)
-abline(v = median(df3$sumSteps, na.rm = TRUE), col = "magenta", lwd = 4)
+nstepsMean <- mean(df3$avgSteps, na.rm = TRUE)
+nstepsMedian <- median(df3$avgSteps, na.rm = TRUE)
+abline(v = mean(df3$avgSteps, na.rm = TRUE), col = "red", lwd = 4)
+abline(v = median(df3$avgSteps, na.rm = TRUE), col = "magenta", lwd = 4)
 ```
 
-![plot of chunk unnamed-chunk-3](figure/unnamed-chunk-3.png) 
+![plot of chunk missingvaluesRefill](figure/missingvaluesRefill.png) 
+
+###What is mean total number of steps taken per day with the missing values filled in?
+The mean value of the total number of steps taken per day is **1.0766 &times; 10<sup>4</sup>** and the median value of the total number of steps taken per day is **1.0766 &times; 10<sup>4</sup>**.
+
+## Are there differences in activity patterns between weekdays and weekends?
+Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
 
 
-The mean value of the total number of steps taken per day is **9354.2295** and the median value of the total number of steps taken per day is **1.0395 &times; 10<sup>4</sup>**.
+```r
+for (row in 1:length(newActivityData$date)) {
+    if (weekdays(as.Date(newActivityData$date[row])) %in% c("Σάββατο", "Κυριακή")) {
+        newActivityData$typeOfDay[row] = "Weekend"
+    } else {
+        newActivityData$typeOfDay[row] = "Weekday"
+    }
+}
+newActivityData$typeOfDay <- as.factor(newActivityData$typeOfDay)
+```
+
+
+Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).
+
+```r
+library(ggplot2)
+df3 <- ddply(newActivityData, .(interval), summarize, avgSteps = mean(steps, 
+    na.rm = TRUE))
+df4 <- cbind(df3, newActivityData$typeOfDay)
+colnames(df4) = c("interval", "avgSteps", "typeOfDay")
+g <- ggplot(df4, aes(x = interval, y = avgSteps))
+g + geom_line() + facet_grid(typeOfDay ~ .) + theme(panel.background = element_rect(colour = "pink")) + 
+    labs(x = "Interval") + labs(y = "Average Steps per interval") + labs(title = "Time series plot of the 5-minute interval and the avg num of steps")
+```
+
+![plot of chunk plots](figure/plots.png) 
+
